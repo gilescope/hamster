@@ -1,0 +1,2 @@
+# hamster
+Offline gitlab runner
