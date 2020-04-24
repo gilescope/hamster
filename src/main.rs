@@ -30,9 +30,7 @@ fn main() -> Result<(), DynErr> {
 }
 
 fn run(gitlab_file: &Path, job: &str) -> Result<(), Box<dyn std::error::Error>> {
-    println!("open file");
     let f = std::fs::File::open(&gitlab_file)?;
-    println!("opened file");
     let raw_yaml = serde_yaml::from_reader(f)?;
 
     let val: serde_yaml::Value = merge_keys_serde(raw_yaml).unwrap();
@@ -59,43 +57,9 @@ fn run(gitlab_file: &Path, job: &str) -> Result<(), Box<dyn std::error::Error>> 
                     //Found target.
                     let j: Result<Job, _> = serde_yaml::from_value(v.clone());
                     if let Ok(j) = j {
-                        if j.extends.is_some() {
-                            todo!("implement extend");
-                        }
                         if *key == job || j.stage.is_some() && (job == *j.stage.as_ref().unwrap()) {
-                            if let Some(script) = j.before_script {
-                                for line in script {
-                                    let mut proc = Exec::shell(OsString::from(line));
-                                    for (key, value) in global_vars.iter() {
-                                        proc = proc.env(key, value);
-                                    }
-                                    if let Some(ref vars) = j.variables {
-                                        for (key, value) in vars.iter() {
-                                            proc = proc.env(key, value);
-                                        }
-                                    }
-                                    proc.join().unwrap();
-                                }
-                            }
-                            if let Some(script) = j.script {
-                                for line in script {
-                                    let mut proc = Exec::shell(OsString::from(line));
-                                    for (key, value) in global_vars.iter() {
-                                        proc = proc.env(key, value);
-                                    }
-                                    if let Some(ref vars) = j.variables {
-                                        for (key, value) in vars.iter() {
-                                            proc = proc.env(key, value);
-                                        }
-                                    }
-                                    proc.join().unwrap();
-                                }
-                            }
-                        } else {
-                            println!("skipping {:?} {:?}", k, j);
+                            run_job(&global_vars, &map, key, j);
                         }
-                    } else {
-                        println!("skipping {:?} {:?}", k, j);
                     }
                 }
             }
@@ -103,6 +67,47 @@ fn run(gitlab_file: &Path, job: &str) -> Result<(), Box<dyn std::error::Error>> 
     }
 
     Ok(())
+}
+
+fn set_vars(map: &Mapping, name: &str, mut vars: &mut HashMap<String, String>) {
+    let me: Job =
+        serde_yaml::from_value(map.get(&Value::String(name.to_string())).unwrap().clone()).unwrap();
+    if let Some(parent) = me.extends {
+        set_vars(map, &parent, &mut vars);
+    }
+    if let Some(me_vars) = me.variables {
+        for (key, value) in me_vars {
+            vars.insert(key, value);
+        }
+    }
+}
+
+fn run_job(global_vars: &HashMap<String, String>, map: &Mapping, key: &String, j: Job) {
+    let mut local_vars = global_vars.clone();
+
+    set_vars(&map, &key, &mut local_vars);
+
+    if let Some(vars) = j.variables {
+        local_vars.extend(vars);
+    }
+
+    if let Some(script) = j.before_script {
+        run_script(script, &local_vars);
+    }
+
+    if let Some(script) = j.script {
+        run_script(script, &local_vars);
+    }
+}
+
+fn run_script(script: Vec<String>, local_vars: &HashMap<String, String>) {
+    for line in script {
+        let mut proc = Exec::shell(OsString::from(line));
+        for (key, value) in local_vars.iter() {
+            proc = proc.env(key, value);
+        }
+        proc.join().unwrap();
+    }
 }
 
 #[cfg(test)]

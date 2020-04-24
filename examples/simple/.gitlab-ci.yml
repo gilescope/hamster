@@ -34,7 +34,13 @@ print_goodbye:
     - echo $GOODBYE a bit
     - echo $GLOBAL_VAR is set?
 
+yaml_merge: &yaml_merge
+  variables:
+    MERGED: "Oh yeah, we merged alright via yaml."
+  script: echo Tada
+
 tired_starlings:
+  <<: *yaml_merge
   extends: .use-local-inheritence
   script:
     - echo Does local inheritance work? $AN_INHERITED_VARIABLE
