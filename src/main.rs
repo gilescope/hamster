@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
-use serde_yaml::Value;
+use serde_yaml::{Mapping, Value};
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsString;
@@ -10,11 +10,12 @@ use subprocess::Exec;
 type DynErr = Box<dyn std::error::Error + 'static>;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct Target {
+struct Job {
     stage: Option<String>,
     before_script: Option<Vec<String>>,
     script: Option<Vec<String>>,
     variables: Option<HashMap<String, String>>,
+    extends: Option<String>,
 }
 
 fn main() -> Result<(), DynErr> {
@@ -27,22 +28,44 @@ fn main() -> Result<(), DynErr> {
     run(&Path::join(&dir, Path::new(".gitlab-ci.yml")), target)
 }
 
-fn run(gitlab_file: &Path, target: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn run(gitlab_file: &Path, job: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("open file");
     let f = std::fs::File::open(&gitlab_file)?;
+    println!("opened file");
     let map: serde_yaml::Mapping = serde_yaml::from_reader(f)?;
-
+    let mut global_vars: HashMap<String, String> = HashMap::new();
+    for (k, v) in map.iter() {
+        if let Value::String(key) = k {
+            if key == "variables" {
+                let global_var_map: Mapping = serde_yaml::from_value(v.clone())?;
+                for (key, value) in global_var_map {
+                    if let Value::String(key) = key {
+                        if let Value::String(value) = value {
+                            global_vars.insert(key, value);
+                        }
+                    }
+                }
+                // Globally defined variables. These should be ignored if inherit:varialbes:false
+            }
+        }
+    }
     for (k, v) in map.iter() {
         if let Value::String(key) = k {
             if key != "stages" {
                 //Found target.
-                let t: Result<Target, _> = serde_yaml::from_value(v.clone());
-                if let Ok(t) = t {
-                    if *key == target || t.stage.is_some() && (target == *t.stage.as_ref().unwrap())
-                    {
-                        if let Some(script) = t.before_script {
+                let j: Result<Job, _> = serde_yaml::from_value(v.clone());
+                if let Ok(j) = j {
+                    if j.extends.is_some() {
+                        todo!("implement extend");
+                    }
+                    if *key == job || j.stage.is_some() && (job == *j.stage.as_ref().unwrap()) {
+                        if let Some(script) = j.before_script {
                             for line in script {
                                 let mut proc = Exec::shell(OsString::from(line));
-                                if let Some(ref vars) = t.variables {
+                                for (key, value) in global_vars.iter() {
+                                    proc = proc.env(key, value);
+                                }
+                                if let Some(ref vars) = j.variables {
                                     for (key, value) in vars.iter() {
                                         proc = proc.env(key, value);
                                     }
@@ -50,10 +73,13 @@ fn run(gitlab_file: &Path, target: &str) -> Result<(), Box<dyn std::error::Error
                                 proc.join().unwrap();
                             }
                         }
-                        if let Some(script) = t.script {
+                        if let Some(script) = j.script {
                             for line in script {
                                 let mut proc = Exec::shell(OsString::from(line));
-                                if let Some(ref vars) = t.variables {
+                                for (key, value) in global_vars.iter() {
+                                    proc = proc.env(key, value);
+                                }
+                                if let Some(ref vars) = j.variables {
                                     for (key, value) in vars.iter() {
                                         proc = proc.env(key, value);
                                     }
@@ -62,10 +88,10 @@ fn run(gitlab_file: &Path, target: &str) -> Result<(), Box<dyn std::error::Error
                             }
                         }
                     } else {
-                        println!("skipping {:?} {:?}", k, t);
+                        println!("skipping {:?} {:?}", k, j);
                     }
                 } else {
-                    println!("skipping {:?} {:?}", k, t);
+                    println!("skipping {:?} {:?}", k, j);
                 }
             }
         }

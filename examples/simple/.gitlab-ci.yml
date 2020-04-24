@@ -3,6 +3,13 @@ stages:
 
 image: node:6.11.2
 
+variables:
+  GLOBAL_VAR: "this GLOBAL_VAR should mostly always be set."
+
+.use-local-inheritence:
+  variables:
+    AN_INHERITED_VARIABLE: "inheritence of local vars works"
+
 print_hello:
   stage: primary_stage
   before_script:
@@ -25,3 +32,9 @@ print_goodbye:
     GOODBYE: "tara"
   script:
     - echo $GOODBYE a bit
+    - echo $GLOBAL_VAR is set?
+
+tired_starlings:
+  extends: .use-local-inheritence
+  script:
+    - echo Does local inheritance work? $AN_INHERITED_VARIABLE
