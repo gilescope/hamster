@@ -1,0 +1,27 @@
+stages:
+  - primary_stage
+
+image: node:6.11.2
+
+print_hello:
+  stage: primary_stage
+  before_script:
+    - echo Some setup here
+  cache:
+    untracked: true
+  only:
+    - master
+  script:
+    - echo hello
+
+print_goodbye:
+  stage: primary_stage
+  cache:
+    untracked: true
+    policy: pull
+  only:
+    - master
+  variables:
+    GOODBYE: "tara"
+  script:
+    - echo $GOODBYE a bit
