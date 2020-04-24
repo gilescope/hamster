@@ -11,3 +11,4 @@ serde_yaml = { version="*", default_features=false }
 serde_derive = { version="*", default_features=false }
 serde = { version="*", default_features=false }
 subprocess = { version="*", default_features=false }
+yaml-merge-keys = {version="*", features=["serde_yaml"]}

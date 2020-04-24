@@ -6,6 +6,7 @@ use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 use subprocess::Exec;
+use yaml_merge_keys::merge_keys_serde;
 
 type DynErr = Box<dyn std::error::Error + 'static>;
 
@@ -32,66 +33,70 @@ fn run(gitlab_file: &Path, job: &str) -> Result<(), Box<dyn std::error::Error>> 
     println!("open file");
     let f = std::fs::File::open(&gitlab_file)?;
     println!("opened file");
-    let map: serde_yaml::Mapping = serde_yaml::from_reader(f)?;
-    let mut global_vars: HashMap<String, String> = HashMap::new();
-    for (k, v) in map.iter() {
-        if let Value::String(key) = k {
-            if key == "variables" {
-                let global_var_map: Mapping = serde_yaml::from_value(v.clone())?;
-                for (key, value) in global_var_map {
-                    if let Value::String(key) = key {
-                        if let Value::String(value) = value {
-                            global_vars.insert(key, value);
+    let raw_yaml = serde_yaml::from_reader(f)?;
+
+    let val: serde_yaml::Value = merge_keys_serde(raw_yaml).unwrap();
+    if let serde_yaml::Value::Mapping(map) = val {
+        let mut global_vars: HashMap<String, String> = HashMap::new();
+        for (k, v) in map.iter() {
+            if let Value::String(key) = k {
+                if key == "variables" {
+                    let global_var_map: Mapping = serde_yaml::from_value(v.clone())?;
+                    for (key, value) in global_var_map {
+                        if let Value::String(key) = key {
+                            if let Value::String(value) = value {
+                                global_vars.insert(key, value);
+                            }
                         }
                     }
+                    // Globally defined variables. These should be ignored if inherit:varialbes:false
                 }
-                // Globally defined variables. These should be ignored if inherit:varialbes:false
             }
         }
-    }
-    for (k, v) in map.iter() {
-        if let Value::String(key) = k {
-            if key != "stages" {
-                //Found target.
-                let j: Result<Job, _> = serde_yaml::from_value(v.clone());
-                if let Ok(j) = j {
-                    if j.extends.is_some() {
-                        todo!("implement extend");
-                    }
-                    if *key == job || j.stage.is_some() && (job == *j.stage.as_ref().unwrap()) {
-                        if let Some(script) = j.before_script {
-                            for line in script {
-                                let mut proc = Exec::shell(OsString::from(line));
-                                for (key, value) in global_vars.iter() {
-                                    proc = proc.env(key, value);
-                                }
-                                if let Some(ref vars) = j.variables {
-                                    for (key, value) in vars.iter() {
-                                        proc = proc.env(key, value);
-                                    }
-                                }
-                                proc.join().unwrap();
-                            }
+        for (k, v) in map.iter() {
+            if let Value::String(key) = k {
+                if key != "stages" {
+                    //Found target.
+                    let j: Result<Job, _> = serde_yaml::from_value(v.clone());
+                    if let Ok(j) = j {
+                        if j.extends.is_some() {
+                            todo!("implement extend");
                         }
-                        if let Some(script) = j.script {
-                            for line in script {
-                                let mut proc = Exec::shell(OsString::from(line));
-                                for (key, value) in global_vars.iter() {
-                                    proc = proc.env(key, value);
-                                }
-                                if let Some(ref vars) = j.variables {
-                                    for (key, value) in vars.iter() {
+                        if *key == job || j.stage.is_some() && (job == *j.stage.as_ref().unwrap()) {
+                            if let Some(script) = j.before_script {
+                                for line in script {
+                                    let mut proc = Exec::shell(OsString::from(line));
+                                    for (key, value) in global_vars.iter() {
                                         proc = proc.env(key, value);
                                     }
+                                    if let Some(ref vars) = j.variables {
+                                        for (key, value) in vars.iter() {
+                                            proc = proc.env(key, value);
+                                        }
+                                    }
+                                    proc.join().unwrap();
                                 }
-                                proc.join().unwrap();
                             }
+                            if let Some(script) = j.script {
+                                for line in script {
+                                    let mut proc = Exec::shell(OsString::from(line));
+                                    for (key, value) in global_vars.iter() {
+                                        proc = proc.env(key, value);
+                                    }
+                                    if let Some(ref vars) = j.variables {
+                                        for (key, value) in vars.iter() {
+                                            proc = proc.env(key, value);
+                                        }
+                                    }
+                                    proc.join().unwrap();
+                                }
+                            }
+                        } else {
+                            println!("skipping {:?} {:?}", k, j);
                         }
                     } else {
                         println!("skipping {:?} {:?}", k, j);
                     }
-                } else {
-                    println!("skipping {:?} {:?}", k, j);
                 }
             }
         }
