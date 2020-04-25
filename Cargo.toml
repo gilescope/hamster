@@ -7,8 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde_yaml = { version="*", default_features=false }
-serde_derive = { version="*", default_features=false }
-serde = { version="*", default_features=false }
+gitlab_ci_parser = { git = "https://github.com/gilescope/gitlab-ci-parser.git", rev="431d19659c2ac10010b3ef9222859a74126ac70b" }
 subprocess = { version="*", default_features=false }
-yaml-merge-keys = {version="*", features=["serde_yaml"]}
