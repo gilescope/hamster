@@ -12,20 +12,45 @@ fn main() -> Result<(), DynErr> {
         dir = dir.parent().unwrap();
     }
     let args: Vec<String> = std::env::args().collect();
-    let target = &args[1];
+
+    let target = if args.len() < 2 {
+        None
+    } else {
+        Some(args[1].to_owned())
+    };
     run(&Path::join(&dir, Path::new(".gitlab-ci.yml")), target)
 }
 
-fn run(gitlab_file: &Path, job: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn run(gitlab_file: &Path, job: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
     let gitlab_config = gitlab_ci_parser::parse(gitlab_file)?;
 
-    for (key, j) in gitlab_config.jobs.iter() {
-        if *key == job || j.stage.is_some() && (job == *j.stage.as_ref().unwrap()) {
-            run_job(&gitlab_config, j);
+    if let Some(job) = job {
+        for (key, j) in gitlab_config.jobs.iter() {
+            if key == &job || j.stage.is_some() && (&job == j.stage.as_ref().unwrap()) {
+                run_job(&gitlab_config, j);
+            }
+        }
+    } else {
+        println!("Found targets:");
+        let mut results = vec![];
+        print_config(&gitlab_config, &mut results);
+        for r in results {
+            println!("\t{}", r);
         }
     }
 
     Ok(())
+}
+
+fn print_config(config: &GitlabCIConfig, results: &mut Vec<String>) {
+    for (job, _) in &config.jobs {
+        if !results.contains(&job) {
+            results.push(job.clone());
+        }
+    }
+    if let Some(ref parent) = config.parent {
+        print_config(&parent, results)
+    }
 }
 
 fn set_vars(job: &Job, mut vars: &mut HashMap<String, String>) {
