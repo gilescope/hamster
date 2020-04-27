@@ -11,3 +11,4 @@ gitlab_ci_parser = { git = "https://github.com/gilescope/gitlab-ci-parser.git", 
 subprocess = { version="0.2", default_features=false }
 tracing = "0.1"
 tracing-subscriber = "0.2"
+ansi_term = {version="0.12"}

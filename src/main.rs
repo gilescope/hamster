@@ -34,6 +34,11 @@ fn main() -> Result<(), DynErr> {
             lev = Level::TRACE;
         }
     }
+
+    //Enable ansi support on win10
+    #[cfg(windows)]
+    let _enabled = ansi_term::enable_ansi_support();
+
     let subscriber = tracing_subscriber::fmt()
         // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
         // will be written to stdout.
