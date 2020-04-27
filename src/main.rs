@@ -95,20 +95,15 @@ fn set_vars(job: &Job, mut vars: &mut HashMap<String, String>) {
 }
 
 fn run_job(gitlab_config: &GitlabCIConfig, j: &Job) {
-    let mut local_vars = gitlab_config.variables.clone();
-
-    set_vars(&j, &mut local_vars);
-
-    if let Some(ref vars) = j.variables {
-        local_vars.extend(vars.clone());
-    }
+    let mut vars = gitlab_config.get_merged_variables();
+    vars.extend(j.get_merged_variables());
 
     if let Some(ref script) = j.before_script {
-        run_script(script, &local_vars);
+        run_script(script, &vars);
     }
 
     if let Some(ref script) = j.script {
-        run_script(script, &local_vars);
+        run_script(script, &vars);
     }
 }
 
