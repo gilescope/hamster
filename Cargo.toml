@@ -7,5 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gitlab_ci_parser = { git = "https://github.com/gilescope/gitlab-ci-parser.git", rev="c0aa7abaa4d9b73b06c6d973ff2354ff264acf76" }
+gitlab_ci_parser = { git = "https://github.com/gilescope/gitlab-ci-parser.git", rev="54ad741d294ce66854afbaa944bc50f55172d232" }
 subprocess = { version="*", default_features=false }
