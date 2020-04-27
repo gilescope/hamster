@@ -19,7 +19,9 @@ impl Default for Config {
 fn main() -> Result<(), DynErr> {
     let mut dir: &Path = &env::current_dir()?;
     while !Path::join(dir, Path::new(".gitlab-ci.yml")).exists() {
-        dir = dir.parent().unwrap();
+        dir = dir
+            .parent()
+            .expect("Can't find .gitlab-ci.yml in a parent dir!");
     }
 
     let args: Vec<String> = std::env::args().collect();
@@ -30,6 +32,9 @@ fn main() -> Result<(), DynErr> {
         Some(args[1].to_owned())
     };
     let mut config = Config::default();
+    if args[1] == "--version" || args[1] == "-v" {
+        println!("hamster v{}", env!("CARGO_PKG_VERSION"));
+    }
     for arg in &args {
         if arg == "--verbose" || arg == "-v" {
             config.verbose = true;
@@ -119,7 +124,7 @@ fn run_script(script: &Vec<String>, local_vars: &HashMap<String, String>, config
         if config.verbose {
             println!("Cmd: {}", line)
         };
-        proc.join().unwrap();
+        proc.join().expect("Process returned non-zero exit code");
     }
 }
 
