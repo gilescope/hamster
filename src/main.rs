@@ -103,16 +103,15 @@ fn print_config(config: &GitlabCIConfig, results: &mut Vec<String>) {
 
 fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
     let mut vars: Vars = Vars::new();
-    vars.insert(
-        "CI_BUILDS_DIR".into(),
-        gitlab_config
-            .file
-            .parent()
-            .expect("gitlab config not in a dir!")
-            .to_str()
-            .expect("odd path")
-            .to_owned(),
-    );
+    let build_dir = gitlab_config
+        .file
+        .parent()
+        .expect("gitlab config not in a dir!")
+        .to_str()
+        .expect("odd path");
+
+    vars.insert("CI_BUILDS_DIR".into(), build_dir.to_owned());
+    vars.insert("CI_PROJECT_DIR".into(), build_dir.to_owned());
 
     vars.insert(
         "CI_CONFIG_PATH".into(),
