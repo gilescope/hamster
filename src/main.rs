@@ -106,12 +106,25 @@ fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
     let build_dir = gitlab_config
         .file
         .parent()
-        .expect("gitlab config not in a dir!")
-        .to_str()
-        .expect("odd path");
+        .expect("gitlab config not in a dir!");
+    vars.insert(
+        "CI_PROJECT_NAME".into(),
+        build_dir
+            .file_name()
+            .unwrap()
+            .to_str()
+            .expect("odd path")
+            .to_owned(),
+    );
 
-    vars.insert("CI_BUILDS_DIR".into(), build_dir.to_owned());
-    vars.insert("CI_PROJECT_DIR".into(), build_dir.to_owned());
+    vars.insert(
+        "CI_BUILDS_DIR".into(),
+        build_dir.to_str().expect("odd path").to_owned(),
+    );
+    vars.insert(
+        "CI_PROJECT_DIR".into(),
+        build_dir.to_str().expect("odd path").to_owned(),
+    );
 
     vars.insert(
         "CI_CONFIG_PATH".into(),
