@@ -1,4 +1,5 @@
 use gitlab_ci_parser::*;
+use shellexpand;
 use std::collections::BTreeMap;
 use std::env;
 use std::ffi::OsString;
@@ -8,6 +9,7 @@ use tracing::{debug, info, Level};
 use tracing_subscriber;
 
 type DynErr = Box<dyn std::error::Error + 'static>;
+type Vars = BTreeMap<String, String>;
 
 fn main() -> Result<(), DynErr> {
     let mut dir: &Path = &env::current_dir()?;
@@ -112,16 +114,31 @@ fn run_job(gitlab_config: &GitlabCIConfig, j: &Job) {
     }
 }
 
-fn run_script(script: &Vec<String>, local_vars: &BTreeMap<String, String>) {
+fn run_script(script: &Vec<String>, local_vars: &Vars) {
     for line in script {
         let mut proc = Exec::shell(OsString::from(line));
         for (key, value) in local_vars.iter() {
-            proc = proc.env(key, value);
+            let value = expand_vars(value, local_vars);
+            proc = proc.env(key, &value);
             debug!("Env: {}={}", key, value);
         }
         info!("Cmd: {}", line);
         proc.join().expect("Process returned non-zero exit code");
     }
+}
+
+/// The website says to use go's os.expand function's semantics:
+fn expand_vars(var: &str, vars: &Vars) -> String {
+    shellexpand::env_with_context_no_errors(var, |key: &str| {
+        if let Some(value) = vars.get(key) {
+            return Some(value.to_owned());
+        }
+        if let Ok(value) = env::var(key) {
+            return Some(value);
+        }
+        return None;
+    })
+    .to_string()
 }
 
 #[cfg(test)]

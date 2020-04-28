@@ -1,5 +1,6 @@
 # hamster
-Offline gitlab runner
+
+offline gitlab runner
 
 **ALPHA**
 
@@ -9,11 +10,11 @@ Just want a runner that doesn't run in a container, but tries to just, you know,
 
 # What does hamster honor?
 
-  * `hamster stage_name` will run all targets in a stage.
   * `hamster target_name` will run that specific target.
-  * variables defined at a global level will be honored.
+  * variables defined at job and global level will be honored.
+  * variable substitution works in the same mannor as go expand.
   * .extends is now supported.
-  * yaml merge << and anchors should work now.
+  * yaml merge << and anchors work.
 
 E.g. with this for your `.gitlab-ci.yml`:
 ```
@@ -26,6 +27,15 @@ goodbye:
 ```
 then `hamster goodbye` would output `tara a bit`.
 
-# What it doesn't do yet?
+# What doesn't it do?
 
-Any form of import support...
+Does't honor:
+
+   * services
+   * image
+   * when
+  * `hamster stage_name` will not run all targets in a stage.[todo]
+
+It won't checkout your code or do anything with git.
+
+It won't start itself in a container (use the official gitlab runner for that)
