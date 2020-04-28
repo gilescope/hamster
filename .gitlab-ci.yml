@@ -1,0 +1,33 @@
+include:
+  - local: /examples/simple/.gitlab-ci.yml
+
+stages:
+  - "primary_stage"
+
+image: node:6.11.2
+
+print_hello:
+  stage: primary_stage
+  before_script:
+    - echo Some setup here
+  cache:
+    untracked: true
+  only:
+    - master
+  variables:
+    MASH_UP: "${CI_COMMIT_SHORT_SHA}-TEMP"
+  script:
+    - set
+    - echo hello unix $CI_COMMIT_SHORT_SHA or on windows %CI_COMMIT_SHORT_SHA%
+
+print_goodbye:
+  stage: primary_stage
+  cache:
+    untracked: true
+    policy: pull
+  only:
+    - master
+  variables:
+    GOODBYE: "tara!"
+  script:
+    - echo $GOODBYE

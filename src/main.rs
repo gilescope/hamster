@@ -101,15 +101,51 @@ fn print_config(config: &GitlabCIConfig, results: &mut Vec<String>) {
     }
 }
 
-fn run_job(gitlab_config: &GitlabCIConfig, j: &Job) {
-    let mut vars = gitlab_config.get_merged_variables();
-    vars.extend(j.get_merged_variables());
+fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
+    let mut vars: Vars = Vars::new();
+    vars.insert(
+        "CI_BUILDS_DIR".into(),
+        gitlab_config
+            .file
+            .parent()
+            .expect("gitlab config not in a dir!")
+            .to_str()
+            .expect("odd path")
+            .to_owned(),
+    );
 
-    if let Some(ref script) = j.before_script {
+    vars.insert(
+        "CI_CONFIG_PATH".into(),
+        gitlab_config.file.to_str().expect("odd path").to_owned(),
+    );
+
+    let info = git_info::get();
+    vars.insert(
+        "CI_COMMIT_SHA".into(),
+        "XXXXdirtyXXXXdirtyXXXXdirtyXXXXdirtyXXXX".into(),
+    );
+    vars.insert("CI_COMMIT_SHORT_SHA".into(), "DirtySHA".into()); // 8 chars for gitlab short
+    vars.insert(
+        "CI_COMMIT_BRANCH".into(),
+        info.current_branch
+            .as_ref()
+            .unwrap_or(&"Unknown".into())
+            .clone(),
+    );
+    vars.insert(
+        "CI_COMMIT_REF_NAME".into(),
+        info.current_branch.unwrap_or("Unknown".to_string()).clone(),
+    );
+    vars.insert("CI_COMMIT_TITLE".into(), "Working Copy".into());
+
+    vars.extend(gitlab_config.get_merged_variables());
+    vars.extend(job.get_merged_variables());
+
+    if let Some(ref script) = job.before_script {
         run_script(script, &vars);
     }
 
-    if let Some(ref script) = j.script {
+    if let Some(ref script) = job.script {
         run_script(script, &vars);
     }
 }
