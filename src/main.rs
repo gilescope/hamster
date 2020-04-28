@@ -59,13 +59,17 @@ fn main() -> Result<(), DynErr> {
 }
 
 fn run(gitlab_file: &Path, job: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
+    debug!("paring {:?}", &gitlab_file);
     let gitlab_config = gitlab_ci_parser::parse(gitlab_file)?;
+    debug!("paring {:?} finished", &gitlab_file);
 
-    if let Some(job) = job {
-        for (key, j) in gitlab_config.jobs.iter() {
-            if key == &job || j.stage.is_some() && (&job == j.stage.as_ref().unwrap()) {
-                run_job(&gitlab_config, j);
-            }
+    if let Some(job_name) = job {
+        debug!("finding {}", &job_name);
+        if let Some(job) = gitlab_config.lookup_job(&job_name) {
+            debug!("found {}", &job_name);
+            run_job(&gitlab_config, &job);
+        } else {
+            info!("Can't find job {}", job_name);
         }
     } else {
         println!("Global variables:");
