@@ -22,8 +22,15 @@ fn main() -> Result<(), DynErr> {
     let target = if args.len() < 2 {
         None
     } else {
-        if args[1] == "--version" || args[1] == "-v" {
+        if args[1] == "--version" {
             println!("hamster v{}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        if args[1] == "--debug" {
+            let gitlab_file = &Path::join(&dir, Path::new(".gitlab-ci.yml"));
+            let gitlab_config = gitlab_ci_parser::parse(gitlab_file)?;
+            println!("{:#?}", gitlab_config);
+            return Ok(());
         }
         Some(args[1].to_owned())
     };
@@ -117,7 +124,6 @@ fn run_script(script: &Vec<String>, local_vars: &BTreeMap<String, String>) {
 pub mod tests {
     use super::*;
     use std::path::PathBuf;
-    //use subprocess::Exec;
 
     #[test]
     pub fn hello() -> Result<(), DynErr> {
