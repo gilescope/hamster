@@ -61,6 +61,11 @@ fn run(gitlab_file: &Path, job: Option<String>) -> Result<(), Box<dyn std::error
             }
         }
     } else {
+        println!("Global variables:");
+        for (k, v) in gitlab_config.get_merged_variables() {
+            println!("\t{}={}", k, v);
+        }
+        println!();
         println!("Found targets:");
         let mut results = vec![];
         print_config(&gitlab_config, &mut results);
@@ -80,17 +85,6 @@ fn print_config(config: &GitlabCIConfig, results: &mut Vec<String>) {
     }
     if let Some(ref parent) = config.parent {
         print_config(&parent, results)
-    }
-}
-
-fn set_vars(job: &Job, mut vars: &mut HashMap<String, String>) {
-    if let Some(ref parent) = job.extends_job {
-        set_vars(&parent, &mut vars);
-    }
-    if let Some(ref me_vars) = job.variables {
-        for (key, value) in me_vars {
-            vars.insert(key.clone(), value.clone());
-        }
     }
 }
 
@@ -145,6 +139,13 @@ pub mod tests {
         let p = &PathBuf::from(Path::join(&root, "examples/simple/.gitlab-ci.yml"));
         run(p, Some("primary_stage".into()))
     }
+
+    // #[test]
+    // pub fn all_in_stage_run() -> Result<(), DynErr> {
+    //     let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")?);
+    //     let p = &PathBuf::from(Path::join(&root, "examples/simple/.gitlab-ci.yml"));
+    //     run(p, Some("primary_stage".into()))
+    // }
 
     // #[test]
     // pub fn no_args() {
