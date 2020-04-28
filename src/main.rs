@@ -1,5 +1,5 @@
 use gitlab_ci_parser::*;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::env;
 use std::ffi::OsString;
 use std::path::Path;
@@ -62,13 +62,14 @@ fn run(gitlab_file: &Path, job: Option<String>) -> Result<(), Box<dyn std::error
         }
     } else {
         println!("Global variables:");
-        for (k, v) in gitlab_config.get_merged_variables() {
+        for (k, v) in BTreeMap::from(gitlab_config.get_merged_variables().iter().collect()) {
             println!("\t{}={}", k, v);
         }
         println!();
         println!("Found targets:");
         let mut results = vec![];
         print_config(&gitlab_config, &mut results);
+        results.sort();
         for r in results {
             println!("\t{}", r);
         }
