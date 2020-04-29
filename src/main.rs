@@ -125,6 +125,10 @@ fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
         "CI_PROJECT_DIR".into(),
         build_dir.to_str().expect("odd path").to_owned(),
     );
+    vars.insert(
+        "CI_JOB_PATH".into(),
+        build_dir.to_str().expect("odd path").to_owned(),
+    );
 
     vars.insert(
         "CI_CONFIG_PATH".into(),
@@ -151,6 +155,9 @@ fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
     vars.insert("GITLAB_USER_EMAIL".into(), info.user_email.unwrap());
     vars.insert("GITLAB_USER_NAME".into(), info.user_name.unwrap());
     vars.insert("CI_COMMIT_TITLE".into(), "Working Copy".into());
+    vars.insert("CI_CONCURRENT_ID".into(), "1".into()); //TODO
+    vars.insert("CI_JOB_NAME".into(), "local_job".into()); //TODO
+    vars.insert("CI_ENVIRONMENT_NAME".into(), "local".into());
 
     vars.extend(gitlab_config.get_merged_variables());
     vars.extend(job.get_merged_variables());
