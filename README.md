@@ -8,6 +8,10 @@ Tired of having to 'register' runners?
 
 Just want a runner that doesn't run in a container, but tries to just, you know, run the stuff?
 
+# But I can't change my .gitlab-ci.yml
+
+No worries, if there's a .gitlab-local.yml it will use that in preference and from there you can include your .gitlab-ci.yml. That way you can override global variables that aren't quite right.
+
 # What does hamster honor?
 
   * `hamster target_name` will run that specific target.
@@ -42,5 +46,8 @@ It won't start itself in a container (use the official gitlab runner for that)
 
 # Changelog
 
+   * vNext
+    - unix shell defaults to bash rather than sh.
+    - check for presence of a .gitlab-local.yml
    * v0.0.4 Bugfix for same dir includes.
    * v0.0.3 Intial release

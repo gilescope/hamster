@@ -15,9 +15,8 @@ categories = ["development-tools::build-utils"]
 
 [dependencies]
 gitlab_ci_parser = { version="0.0.5" }
-subprocess = { version="0.2", default_features=false }
 tracing = "0.1"
-tracing-subscriber = "0.2"
+tracing-subscriber = {version = "0.2", default_features=false, features=["fmt", "ansi"] }
 ansi_term = {version="0.12"}
 shellexpand = "2.0"
 git_info = "0.1"

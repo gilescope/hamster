@@ -2,9 +2,7 @@ use gitlab_ci_parser::*;
 use shellexpand;
 use std::collections::BTreeMap;
 use std::env;
-use std::ffi::OsString;
 use std::path::Path;
-use subprocess::Exec;
 use tracing::{debug, info, Level};
 use tracing_subscriber;
 
@@ -13,11 +11,18 @@ type Vars = BTreeMap<String, String>;
 
 fn main() -> Result<(), DynErr> {
     let mut dir: &Path = &env::current_dir()?;
-    while !Path::join(dir, Path::new(".gitlab-ci.yml")).exists() {
+    while !Path::join(dir, Path::new(".gitlab-ci.yml")).exists()
+        && !Path::join(dir, Path::new(".gitlab-local.yml")).exists()
+    {
         dir = dir
             .parent()
             .expect("Can't find .gitlab-ci.yml in a parent dir!");
     }
+    let config_filename = if Path::join(dir, Path::new(".gitlab-local.yml")).exists() {
+        ".gitlab-local.yml"
+    } else {
+        ".gitlab-ci.yml"
+    };
 
     let args: Vec<String> = std::env::args().collect();
 
@@ -29,7 +34,7 @@ fn main() -> Result<(), DynErr> {
             return Ok(());
         }
         if args[1] == "--debug" {
-            let gitlab_file = &Path::join(&dir, Path::new(".gitlab-ci.yml"));
+            let gitlab_file = &Path::join(&dir, Path::new(config_filename));
             let gitlab_config = gitlab_ci_parser::parse(gitlab_file)?;
             println!("{:#?}", gitlab_config);
             return Ok(());
@@ -49,6 +54,7 @@ fn main() -> Result<(), DynErr> {
     let _enabled = ansi_term::enable_ansi_support();
 
     let subscriber = tracing_subscriber::fmt()
+        .without_time()
         // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
         // will be written to stdout.
         .with_max_level(lev)
@@ -56,7 +62,7 @@ fn main() -> Result<(), DynErr> {
         .finish();
 
     tracing::subscriber::with_default(subscriber, || {
-        run(&Path::join(&dir, Path::new(".gitlab-ci.yml")), target)
+        run(&Path::join(&dir, Path::new(config_filename)), target)
     })
 }
 
@@ -171,16 +177,27 @@ fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
     }
 }
 
+#[cfg(unix)]
+const SHELL: [&str; 2] = ["bash", "-c"];
+
+#[cfg(windows)]
+const SHELL: [&str; 2] = ["cmd.exe", "/c"];
+
 fn run_script(script: &Vec<String>, local_vars: &Vars) {
     for line in script {
-        let mut proc = Exec::shell(OsString::from(line));
+        let mut cmd = std::process::Command::new(SHELL[0]);
+        cmd.arg(&SHELL[1]).arg(line);
+
         for (key, value) in local_vars.iter() {
             let value = expand_vars(value, local_vars);
-            proc = proc.env(key, &value);
+            cmd.env(key, &value);
             debug!("Env: {}={}", key, value);
         }
-        info!("Cmd: {}", line);
-        proc.join().expect("Process returned non-zero exit code");
+        info!(" - {}", line);
+        let status = cmd.status();
+        if status.is_err() {
+            eprintln!("Error code {:?} ", status);
+        }
     }
 }
 

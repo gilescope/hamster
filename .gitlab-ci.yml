@@ -2,6 +2,7 @@ include:
   - local: /examples/simple/.gitlab-ci.yml
 
 stages:
+  - prep
   - "primary_stage"
 
 image: node:6.11.2
@@ -15,6 +16,7 @@ print_hello:
   only:
     - master
   variables:
+    Number: 0
     MASH_UP: "${CI_COMMIT_SHORT_SHA}-TEMP"
   script:
     - set
@@ -31,3 +33,39 @@ print_goodbye:
     GOODBYE: "tara!"
   script:
     - echo $GOODBYE
+
+install:
+  stage: prep
+  script:
+    - cargo install cargo-audit --features=fix
+    - cargo install grcov
+    - cargo install cargo-bloat
+    - cargo install cargo-deps
+    # - cargo install cargo-feature-analyst # depends on cargo so heavy and doesn't work..
+
+check:
+  stage: primary_stage
+  script:
+    - cargo fmt -- --check
+    - cargo test
+    - cargo clippy
+    - cargo audit
+
+bloat:
+  script:
+    - cargo bloat --release --crates
+
+deps:
+  script:
+    - cargo deps | dot -Tsvg > deps.svg
+
+cover:
+  stage: primary_Stage
+  variables:
+    CARGO_INCREMENTAL: "0"
+    RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
+  script:
+    - cargo clean
+    - cargo test
+    - grcov ./target/debug/ -s . -t html --llvm --branch --ignore-not-existing -o ./target/debug/coverage/
+    - grcov ./target/debug/ -s . --llvm --branch --ignore-not-existing -o ./target/debug/coverage/
