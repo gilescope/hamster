@@ -148,6 +148,8 @@ fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
         "CI_COMMIT_REF_NAME".into(),
         info.current_branch.unwrap_or("Unknown".to_string()).clone(),
     );
+    vars.insert("GITLAB_USER_EMAIL".into(), info.user_email.unwrap());
+    vars.insert("GITLAB_USER_NAME".into(), info.user_name.unwrap());
     vars.insert("CI_COMMIT_TITLE".into(), "Working Copy".into());
 
     vars.extend(gitlab_config.get_merged_variables());

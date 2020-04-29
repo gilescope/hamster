@@ -39,3 +39,8 @@ Does't honor:
 It won't checkout your code or do anything with git.
 
 It won't start itself in a container (use the official gitlab runner for that)
+
+# Changelog
+
+   * v0.0.4 Bugfix for same dir includes.
+   * v0.0.3 Intial release
