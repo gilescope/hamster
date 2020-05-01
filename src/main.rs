@@ -3,6 +3,7 @@ use shellexpand;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::Path;
+use std::process::Command;
 use tracing::{debug, info, Level};
 use tracing_subscriber;
 
@@ -177,16 +178,18 @@ fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
     }
 }
 
-#[cfg(unix)]
+#[cfg(not(target_os = "windows"))]
 const SHELL: [&str; 2] = ["bash", "-c"];
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 const SHELL: [&str; 2] = ["cmd.exe", "/c"];
 
 fn run_script(script: &Vec<String>, local_vars: &Vars) {
     for line in script {
-        let mut cmd = std::process::Command::new(SHELL[0]);
-        cmd.arg(&SHELL[1]).arg(line);
+        let mut cmd = Command::new(SHELL[0]);
+        cmd.arg(&SHELL[1]);
+        add_args(&mut cmd, line);
+        //        .arg(line); //TODO for windows we may need to split this on ' '...
 
         for (key, value) in local_vars.iter() {
             let value = expand_vars(value, local_vars);
@@ -199,6 +202,19 @@ fn run_script(script: &Vec<String>, local_vars: &Vars) {
             eprintln!("Error code {:?} ", status);
         }
     }
+}
+
+#[cfg(target_os = "windows")]
+fn add_args(cmd: &mut Command, line: &str) {
+    let args = shlex::split(line);
+    for arg in args {
+        cmd.arg(arg);
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn add_args(cmd: &mut Command, line: &str) {
+    cmd.arg(line);
 }
 
 /// The website says to use go's os.expand function's semantics:
