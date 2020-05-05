@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::Path;
 use std::process::Command;
+use std::ffi::OsString;
 use tracing::{debug, info, Level};
 use tracing_subscriber;
 
@@ -208,13 +209,13 @@ fn run_script(script: &Vec<String>, local_vars: &Vars) {
 fn add_args(cmd: &mut Command, line: &str) {
     let args = shlex::split(line);
     for arg in args {
-        cmd.arg(arg);
+        cmd.arg(&OsString::from(arg.to_owned()));
     }
 }
 
 #[cfg(not(target_os = "windows"))]
 fn add_args(cmd: &mut Command, line: &str) {
-    cmd.arg(line);
+    cmd.arg(&OsString::from(line.to_owned()));
 }
 
 /// The website says to use go's os.expand function's semantics:
