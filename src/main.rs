@@ -207,7 +207,7 @@ fn run_script(script: &Vec<String>, local_vars: &Vars) {
 
 #[cfg(target_os = "windows")]
 fn add_args(cmd: &mut Command, line: &str) {
-    let args = shlex::split(line);
+    let args : Vec<String> = shlex::split(line).unwrap();//.expect(&format!("Couldn't shlex {}", line);
     for arg in args {
         cmd.arg(&OsString::from(arg.to_owned()));
     }
