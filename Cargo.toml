@@ -14,7 +14,7 @@ categories = ["development-tools::build-utils"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gitlab_ci_parser = { git="https://github.com/gilescope/gitlab-ci-parser.git", ref="4ee7aa5abc5e7a9ff2be4952d62e04fb7509b81c" }
+gitlab_ci_parser = { git="https://github.com/gilescope/gitlab-ci-parser.git", rev="1fe6bc6b6f839a8bda3571307de4e436284d8c34" }
 tracing = "0.1"
 tracing-subscriber = {version = "0.2", default_features=false, features=["fmt", "ansi"] }
 ansi_term = {version="0.12"}
