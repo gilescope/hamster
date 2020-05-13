@@ -170,12 +170,38 @@ fn run_job(gitlab_config: &GitlabCIConfig, job: &Job) {
     vars.extend(gitlab_config.get_merged_variables());
     vars.extend(job.get_merged_variables());
 
-    if let Some(ref script) = job.before_script {
+
+    if let Some(ref script) = get_before_script(job) {
         run_script(script, &vars);
     }
-
-    if let Some(ref script) = job.script {
+    if let Some(ref script) = get_script(job) {
         run_script(script, &vars);
+    }
+}
+
+fn get_before_script(job:&Job) -> Option<Vec<String>> {
+    if let Some(ref res) = job.before_script {
+        Some(res.to_vec())
+    } else {
+        for job in job.extends_jobs.iter().rev() {
+            if let Some(ref res) = get_before_script(job) {
+                return Some(res.to_vec())
+            }
+        }
+        None
+    }
+}
+
+fn get_script(job:&Job) -> Option<Vec<String>> {
+    if let Some(ref res) = job.script {
+        Some(res.to_vec())
+    } else {
+        for job in job.extends_jobs.iter().rev() {
+            if let Some(ref res) = get_script(job) {
+                return Some(res.to_vec())
+            }
+        }
+        None
     }
 }
 
