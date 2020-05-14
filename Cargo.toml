@@ -21,3 +21,4 @@ ansi_term = {version="0.12"}
 shellexpand = "2.0"
 git_info = "0.1"
 shlex = {git="https://github.com/fenhl/rust-shlex.git", rev="d2e5b5d68248884d5f101341af9649fe8b6629c1"}
+shell2batch = "^0.4.2"

@@ -250,10 +250,7 @@ fn expand_vars(var: &str, vars: &Vars) -> String {
         if let Some(value) = vars.get(key) {
             return Some(value.to_owned());
         }
-        if let Ok(value) = env::var(key) {
-            return Some(value);
-        }
-        return None;
+        env::var(key).ok()
     })
     .to_string()
 }
